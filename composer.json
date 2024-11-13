@@ -1,0 +1,25 @@
+{
+    "name": "tiime/cross-industry-invoice-universal-business-language-conversion",
+    "type": "library",
+    "require": {
+        "php": ">=8.3",
+        "tiime/cross-industry-invoice": "dev-main",
+        "tiime/universal-business-language": "dev-master"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Tiime\\CrossIndustryInvoiceUniversalBusinessLanguageConversion\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Aurélien Pillevesse",
+            "email": "aurelienpillevesse@hotmail.fr"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "dev-master"
+    }
+}
