@@ -125,6 +125,7 @@ use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\TaxableAmount;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\TaxAmount;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\TaxExclusiveAmount;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\TaxInclusiveAmount;
+use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\TaxPointDate;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\InvoiceTypeCode;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\UniversalBusinessLanguage;
 
@@ -798,8 +799,8 @@ class CIIToUBLInvoice
         ))
             ->setTaxCurrencyCode($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getTaxCurrencyCode()) // BT-6
             ->setTaxPointDate( // BT-7
-                $invoice instanceof EN16931CrossIndustryInvoice && null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getTaxPointDate() ?
-                    $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getTaxPointDate()->getDateString() : null
+                $invoice instanceof EN16931CrossIndustryInvoice && \count($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()) > 0 && null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getTaxPointDate() ?
+                    new TaxPointDate($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getTaxPointDate()->getDateString()) : null
             )
             ->setInvoicePeriod( // BT-8-00
                 null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getDueDateTypeCode() ?
@@ -811,7 +812,7 @@ class CIIToUBLInvoice
             )
             ->setDueDate(
                 null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms()?->getDueDateDateTime() ?
-                    new DueDate($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms()?->getDueDateDateTime()->getDateTimeString()) : null
+                    new DueDate($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms()->getDueDateDateTime()->getDateTimeString()) : null
             ) // BT-9-00
             ->setBuyerReference($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerReference()) // BT-10
             ->setProjectReference( // BT-11 (EN)
@@ -860,7 +861,7 @@ class CIIToUBLInvoice
                     $invoice->getExchangedDocument()->getIncludedNotes()
                 )
             )
-            ->setProfileIdentifier($invoice->getExchangedDocumentContext()->getBusinessProcessSpecifiedDocumentContextParameter()->getIdentifier()) // BT-23
+            ->setProfileIdentifier($invoice->getExchangedDocumentContext()->getBusinessProcessSpecifiedDocumentContextParameter()?->getIdentifier()) // BT-23
             ->setBillingReferences(self::getBillingReferences($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceReferencedDocuments())) // BG-3
             ->setTaxRepresentativeParty( // BG-11
                 null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTaxRepresentativeTradeParty() ?
