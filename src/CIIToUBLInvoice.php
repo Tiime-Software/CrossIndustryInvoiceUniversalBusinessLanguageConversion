@@ -490,6 +490,9 @@ class CIIToUBLInvoice
         ;
     }
 
+    /**
+     * BG-20
+     */
     private static function getInvoiceAllowances(BasicWLCrossIndustryInvoice $invoice): array
     {
         return array_map(
@@ -516,6 +519,9 @@ class CIIToUBLInvoice
         );
     }
 
+    /**
+     * BG-21
+     */
     private static function getInvoiceCharges(BasicWLCrossIndustryInvoice $invoice): array
     {
         return array_map(
@@ -636,6 +642,9 @@ class CIIToUBLInvoice
         );
     }
 
+    /**
+     * BG-13
+     */
     private static function getDelivery(BasicWLCrossIndustryInvoice $invoice): ?Delivery
     {
         return $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty() !== null ?
@@ -721,13 +730,6 @@ class CIIToUBLInvoice
 
     public static function convert(BasicWLCrossIndustryInvoice $invoice) //: UniversalBusinessLanguageInterface @todo when one interface
     {
-        // BG-1
-        // CII : 0..n - UBL 2.1 notre lib : 0..1
-        // BT-21 : 0..1
-        // BT-22 : 1..1
-
-
-
         return (new UniversalBusinessLanguage(
             identifier: $invoice->getExchangedDocument()->getIdentifier(), // BT-1
             issueDate: new IssueDate($invoice->getExchangedDocument()->getIssueDateTime()->getDateTimeString()), // BT-2-00
@@ -835,7 +837,8 @@ class CIIToUBLInvoice
             ->setNotes( // BG-1-00
                 array_map(
                     static fn(DocumentIncludedNote $note) => new Note(
-                        subjectCode: $note->getSubjectCode(), content: $note->getContent(),
+                        subjectCode: $note->getSubjectCode(), // BT-21
+                        content: $note->getContent(), // BT-22
                     ),
                     $invoice->getExchangedDocument()->getIncludedNotes()
                 )
@@ -874,7 +877,4 @@ class CIIToUBLInvoice
             ->setAdditionalDocumentReferences($invoice instanceof EN16931CrossIndustryInvoice ? self::getAdditionalDocumentReferences($invoice) : []) // BG-24
         ;
     }
-
-    // BT-18 : EN - todo que mettre ?
-    // BT-32 : EN
 }
