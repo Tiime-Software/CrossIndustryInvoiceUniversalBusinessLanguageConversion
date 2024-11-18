@@ -214,11 +214,10 @@ class CIIToUBLInvoice
                                 )
                             ))
                                 ->setBaseAmount(  // BT-148
-                                    null !== $invoiceLine->getSpecifiedLineTradeAgreement()->getGrossPriceProductTradePrice() ?
-                                        new BaseAmount(
-                                            value: $invoiceLine->getSpecifiedLineTradeAgreement()->getGrossPriceProductTradePrice()->getChargeAmount()->getValue(),
-                                            currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
-                                        ) : null
+                                    new BaseAmount(
+                                        value: $invoiceLine->getSpecifiedLineTradeAgreement()->getGrossPriceProductTradePrice()->getChargeAmount()->getValue(),
+                                        currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                                    )
                                 )
                             : null
                     )
