@@ -466,9 +466,9 @@ class CIIToUBLInvoice
             ) // BT-115
         ))
             ->setPayableRoundingAmount( // BT-114 (EN)
-                $invoice instanceof EN16931CrossIndustryInvoice ?
+                $invoice instanceof EN16931CrossIndustryInvoice && null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getRoundingAmount() ?
                     new PayableRoundingAmount(
-                        value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getRoundingAmount()?->getValue(),
+                        value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getRoundingAmount()->getValue(),
                         currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
                     ) : null
             )
@@ -670,11 +670,13 @@ class CIIToUBLInvoice
                 ->setDeliveryLocation(
                     (new DeliveryLocation())
                         ->setIdentifier( // BT-71
-                            null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getGlobalIdentifier() || null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getIdentifier() ?
-                                new LocationIdentifier(
-                                    value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getGlobalIdentifier()?->value   ?? $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getIdentifier()?->value ?? null,
-                                    scheme: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getGlobalIdentifier()?->scheme ?? null,
-                                ) : null
+                            (null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getGlobalIdentifier() ? new LocationIdentifier(
+                                value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getGlobalIdentifier()->value,
+                                scheme: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getGlobalIdentifier()->scheme,
+                            ) : null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getIdentifier()) ? new LocationIdentifier(
+                                value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getIdentifier()->value,
+                                scheme: null,
+                            ) : null
                         )
                         ->setAddress( // BG-15
                             null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getPostalTradeAddress() ?
