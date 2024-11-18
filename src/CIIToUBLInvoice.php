@@ -20,6 +20,7 @@ use Tiime\CrossIndustryInvoice\DataType\EN16931\SpecifiedTradeSettlementPaymentM
 use Tiime\CrossIndustryInvoice\DataType\InvoiceReferencedDocument;
 use Tiime\CrossIndustryInvoice\DataType\SellerGlobalIdentifier;
 use Tiime\CrossIndustryInvoice\DataType\SellerTaxRepresentativeTradeParty;
+use Tiime\CrossIndustryInvoice\DataType\ShipToTradeParty;
 use Tiime\CrossIndustryInvoice\DataType\SpecifiedTradeAllowance;
 use Tiime\CrossIndustryInvoice\DataType\SpecifiedTradeCharge;
 use Tiime\CrossIndustryInvoice\DataType\TaxTotalAmount;
@@ -657,6 +658,28 @@ class CIIToUBLInvoice
     }
 
     /**
+     * BT-71.
+     */
+    private static function getDeliveryLocationIdentifier(ShipToTradeParty $shipToTradeParty): ?LocationIdentifier
+    {
+        if (null !== $shipToTradeParty->getGlobalIdentifier()) {
+            return new LocationIdentifier(
+                value: $shipToTradeParty->getGlobalIdentifier()->value,
+                scheme: $shipToTradeParty->getGlobalIdentifier()->scheme,
+            );
+        }
+
+        if (null !== $shipToTradeParty->getIdentifier()) {
+            return new LocationIdentifier(
+                value: $shipToTradeParty->getIdentifier()->value,
+                scheme: null,
+            );
+        }
+
+        return null;
+    }
+
+    /**
      * BG-13.
      */
     private static function getDelivery(BasicWLCrossIndustryInvoice $invoice): ?Delivery
@@ -670,15 +693,7 @@ class CIIToUBLInvoice
                 )
                 ->setDeliveryLocation(
                     (new DeliveryLocation())
-                        ->setIdentifier( // BT-71
-                            (null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getGlobalIdentifier() ? new LocationIdentifier(
-                                value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getGlobalIdentifier()->value,
-                                scheme: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getGlobalIdentifier()->scheme,
-                            ) : null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getIdentifier()) ? new LocationIdentifier(
-                                value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getIdentifier()->value,
-                                scheme: null,
-                            ) : null
-                        )
+                        ->setIdentifier(self::getDeliveryLocationIdentifier($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()))
                         ->setAddress( // BG-15
                             null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getPostalTradeAddress() ?
                                 (new DeliveryAddress(new Country($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeDelivery()->getShipToTradeParty()->getPostalTradeAddress()->getCountryIdentifier()))) // BT-80
@@ -703,6 +718,35 @@ class CIIToUBLInvoice
     }
 
     /**
+     * BG-17.
+     */
+    private static function getFinancialAccount(SpecifiedTradeSettlementPaymentMeans $payment): ?PayeeFinancialAccount
+    {
+        $account = null;
+
+        if (null !== $payment->getPayeePartyCreditorFinancialAccount()?->getIbanIdentifier()) {
+            $account = (new PayeeFinancialAccount(
+                paymentAccountIdentifier: $payment->getPayeePartyCreditorFinancialAccount()->getIbanIdentifier() // BT-84
+            ))
+                ->setPaymentAccountName($payment instanceof EN16931SpecifiedTradeSettlementPaymentMeans ? $payment->getPayeePartyCreditorFinancialAccount()->getAccountName() : null) // BT-85
+            ;
+        }
+
+        if (null !== $payment->getPayeePartyCreditorFinancialAccount()?->getProprietaryIdentifier()) {
+            $account = (new PayeeFinancialAccount(
+                paymentAccountIdentifier: $payment->getPayeePartyCreditorFinancialAccount()->getProprietaryIdentifier() // BT-84
+            ))
+                ->setPaymentAccountName($payment instanceof EN16931SpecifiedTradeSettlementPaymentMeans ? $payment->getPayeePartyCreditorFinancialAccount()->getAccountName() : null) // BT-85
+            ;
+        }
+
+        return $account?->setFinancialInstitutionBranch( // BT-86
+            $payment instanceof EN16931SpecifiedTradeSettlementPaymentMeans && null !== $payment->getPayeeSpecifiedCreditorFinancialInstitution() ?
+                new FinancialInstitutionBranch($payment->getPayeeSpecifiedCreditorFinancialInstitution()->getBicIdentifier()) : null
+        );
+    }
+
+    /**
      * @return PaymentMeans[]
      */
     private static function getPaymentMeans(BasicWLCrossIndustryInvoice $invoice): array
@@ -713,16 +757,7 @@ class CIIToUBLInvoice
                     ->setName($payment instanceof EN16931SpecifiedTradeSettlementPaymentMeans ? $payment->getInformation() : null) // BT-82
             ))
                 ->setPaymentIdentifier($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPaymentReference()) // BT-83
-                ->setPayeeFinancialAccount( // BG-17
-                    null !== $payment->getPayeePartyCreditorFinancialAccount() && (null !== $payment->getPayeePartyCreditorFinancialAccount()->getIbanIdentifier() || null !== $payment->getPayeePartyCreditorFinancialAccount()->getProprietaryIdentifier()) ?
-                        (new PayeeFinancialAccount($payment->getPayeePartyCreditorFinancialAccount()->getIbanIdentifier() ?? $payment->getPayeePartyCreditorFinancialAccount()->getProprietaryIdentifier())) // BT-84
-                            ->setPaymentAccountName($payment instanceof EN16931SpecifiedTradeSettlementPaymentMeans ? $payment->getPayeePartyCreditorFinancialAccount()->getAccountName() : null) // BT-85
-                            ->setFinancialInstitutionBranch( // BT-86
-                                $payment instanceof EN16931SpecifiedTradeSettlementPaymentMeans && null !== $payment->getPayeeSpecifiedCreditorFinancialInstitution() ?
-                                    new FinancialInstitutionBranch($payment->getPayeeSpecifiedCreditorFinancialInstitution()->getBicIdentifier()) : null
-                            )
-                        : null
-                )
+                ->setPayeeFinancialAccount(self::getFinancialAccount($payment)) // BG-17
                 ->setCardAccount( // BG-18
                     $payment instanceof EN16931SpecifiedTradeSettlementPaymentMeans && null !== $payment->getApplicableTradeSettlementFinancialCard() ?
                         (new CardAccount(
