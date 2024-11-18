@@ -199,9 +199,9 @@ class CIIToUBLInvoice
                 ))
                     ->setAllowance(
                         null !== $invoiceLine->getSpecifiedLineTradeAgreement()->getGrossPriceProductTradePrice()?->getAppliedTradeAllowanceCharge() ?
-                            (new PriceAllowanceCharge( // BT-147 - todo 0..1 donc revoir condition
+                            (new PriceAllowanceCharge( // BT-147
                                 new AllowanceChargeAmount(
-                                    value: $invoiceLine->getSpecifiedLineTradeAgreement()->getGrossPriceProductTradePrice()->getAppliedTradeAllowanceCharge()?->getActualAmount()->getValue(),
+                                    value: $invoiceLine->getSpecifiedLineTradeAgreement()->getGrossPriceProductTradePrice()->getAppliedTradeAllowanceCharge()->getActualAmount()->getValue(),
                                     currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
                                 )
                             ))
