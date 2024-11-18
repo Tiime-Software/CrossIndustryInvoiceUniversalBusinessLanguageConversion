@@ -11,6 +11,7 @@ use Tiime\CrossIndustryInvoice\DataType\Basic\LineSpecifiedTradeAllowance as Bas
 use Tiime\CrossIndustryInvoice\DataType\BasicWL\HeaderApplicableTradeTax;
 use Tiime\CrossIndustryInvoice\DataType\BasicWL\SpecifiedTradeSettlementPaymentMeans;
 use Tiime\CrossIndustryInvoice\DataType\DesignatedProductClassification;
+use Tiime\CrossIndustryInvoice\DataType\DocumentIncludedNote;
 use Tiime\CrossIndustryInvoice\DataType\EN16931\IncludedSupplyChainTradeLineItem as EN16931IncludedSupplyChainTradeLineItem;
 use Tiime\CrossIndustryInvoice\DataType\EN16931\LineSpecifiedTradeAllowance as EN16931LineSpecifiedTradeAllowance;
 use Tiime\CrossIndustryInvoice\DataType\InvoiceReferencedDocument;
@@ -18,6 +19,7 @@ use Tiime\CrossIndustryInvoice\DataType\SellerGlobalIdentifier;
 use Tiime\CrossIndustryInvoice\DataType\SellerTaxRepresentativeTradeParty;
 use Tiime\CrossIndustryInvoice\DataType\SpecifiedTradeAllowance;
 use Tiime\CrossIndustryInvoice\DataType\SpecifiedTradeCharge;
+use Tiime\CrossIndustryInvoice\DataType\TaxTotalAmount;
 use Tiime\CrossIndustryInvoice\EN16931\CrossIndustryInvoice as EN16931CrossIndustryInvoice;
 use Tiime\EN16931\Converter\TimeReferencingCodeUNTDID2005ToTimeReferencingCodeUNTDID2475;
 use Tiime\EN16931\DataType\Identifier\BuyerIdentifier;
@@ -70,6 +72,7 @@ use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\OriginCount
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PartyName;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeeFinancialAccount;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeeParty;
+use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeePartyBACIdentification;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeePartyIdentification;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeePartyLegalEntity;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeePartyName;
@@ -109,7 +112,9 @@ use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\InvoiceDocument
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\InvoicedQuantity;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\IssueDate;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\LineExtensionAmount;
+use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\Note;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\PayableAmount;
+use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\PayableRoundingAmount;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\PaymentMeansNamedCode;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\PrepaidAmount;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\PriceAmount;
@@ -126,9 +131,11 @@ use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\UniversalBusinessLanguage;
  */
 class CIIToUBLInvoice
 {
+    /**
+     * BG-25
+     */
     private static function getLines(BasicCrossIndustryInvoice $invoice): array
     {
-        // BG-25
         return array_map(
             static fn(BasicIncludedSupplyChainTradeLineItem $invoiceLine) => (new InvoiceLine(
                 invoiceLineIdentifier: $invoiceLine->getAssociatedDocumentLineDocument()->getLineIdentifier(), // BT-126
@@ -137,7 +144,8 @@ class CIIToUBLInvoice
                     unitCode: $invoiceLine->getSpecifiedLineTradeDelivery()->getBilledQuantity()->getUnitCode() // BT-130
                 ),
                 lineExtensionAmount: new LineExtensionAmount( // BT-131
-                    value: $invoiceLine->getSpecifiedLineTradeSettlement()->getSpecifiedTradeSettlementLineMonetarySummation()->getLineTotalAmount()->getValue()
+                    value: $invoiceLine->getSpecifiedLineTradeSettlement()->getSpecifiedTradeSettlementLineMonetarySummation()->getLineTotalAmount()->getValue(),
+                    currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
                 ),
                 item: (new Item(
                     name: $invoiceLine->getSpecifiedTradeProduct()->getName(), // BT-153
@@ -186,16 +194,25 @@ class CIIToUBLInvoice
                     )
                 ,
                 price: (new Price( // BT-146
-                    new PriceAmount($invoiceLine->getSpecifiedLineTradeAgreement()->getNetPriceProductTradePrice()->getChargeAmount()->getValue())
+                    new PriceAmount(
+                        value: $invoiceLine->getSpecifiedLineTradeAgreement()->getNetPriceProductTradePrice()->getChargeAmount()->getValue(),
+                        currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                    )
                 ))
                     ->setAllowance(
                         $invoiceLine->getSpecifiedLineTradeAgreement()->getGrossPriceProductTradePrice()?->getAppliedTradeAllowanceCharge() !== null ?
                             (new PriceAllowanceCharge( // BT-147 - todo 0..1 donc revoir condition
-                                new AllowanceChargeAmount($invoiceLine->getSpecifiedLineTradeAgreement()->getGrossPriceProductTradePrice()->getAppliedTradeAllowanceCharge()?->getActualAmount()->getValue())
+                                new AllowanceChargeAmount(
+                                    value: $invoiceLine->getSpecifiedLineTradeAgreement()->getGrossPriceProductTradePrice()->getAppliedTradeAllowanceCharge()?->getActualAmount()->getValue(),
+                                    currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                                )
                             ))
                                 ->setBaseAmount(  // BT-148
                                     $invoiceLine->getSpecifiedLineTradeAgreement()->getGrossPriceProductTradePrice() !== null ?
-                                        new BaseAmount($invoiceLine->getSpecifiedLineTradeAgreement()->getGrossPriceProductTradePrice()->getChargeAmount()->getValue()) : null
+                                        new BaseAmount(
+                                            value: $invoiceLine->getSpecifiedLineTradeAgreement()->getGrossPriceProductTradePrice()->getChargeAmount()->getValue(),
+                                            currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                                        ) : null
                                 )
                             : null
                     )
@@ -240,11 +257,17 @@ class CIIToUBLInvoice
                 ->setAllowances( // BG-27
                     array_map(
                         static fn(BasicLineSpecifiedTradeAllowance $allowance) => (new InvoiceLineAllowance(
-                            amount: new AllowanceChargeAmount($allowance->getActualAmount()->getValue()) // BT-136 - todo pas de currency
+                            amount: new AllowanceChargeAmount(
+                                value: $allowance->getActualAmount()->getValue(),
+                                currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                            ) // BT-136
                         ))
-                            ->setBaseAmount( // BT-137 - todo pas currency
+                            ->setBaseAmount( // BT-137
                                 $allowance instanceof EN16931LineSpecifiedTradeAllowance && $allowance->getBasisAmount() !== null ?
-                                    new BaseAmount($allowance->getBasisAmount()->getValue()) : null
+                                    new BaseAmount(
+                                        value: $allowance->getBasisAmount()->getValue(),
+                                        currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                                    ) : null
                             )
                             ->setMultiplierFactorNumeric( // BT-138
                                 $allowance instanceof EN16931LineSpecifiedTradeAllowance && $allowance->getCalculationPercent() !== null ?
@@ -259,11 +282,17 @@ class CIIToUBLInvoice
                 ->setCharges( // BG-28
                     array_map(
                         static fn(BasicLineSpecifiedTradeAllowance $charge) => (new InvoiceLineCharge(
-                            amount: new AllowanceChargeAmount($charge->getActualAmount()) // BT-141 - todo pas de currency
+                            amount: new AllowanceChargeAmount(
+                                value: $charge->getActualAmount()->getValue(),
+                                currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                            ) // BT-141
                         ))
-                            ->setBaseAmount( // BT-142 - todo pas currency
+                            ->setBaseAmount( // BT-142
                                 $charge instanceof EN16931LineSpecifiedTradeAllowance && $charge->getBasisAmount() !== null ?
-                                    new BaseAmount($charge->getBasisAmount()->getValue()) : null
+                                    new BaseAmount(
+                                        value: $charge->getBasisAmount()->getValue(),
+                                        currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                                    ) : null
                             )
                             ->setMultiplierFactorNumeric( // BT-143
                                 $charge instanceof EN16931LineSpecifiedTradeAllowance && $charge->getCalculationPercent() !== null ?
@@ -413,26 +442,50 @@ class CIIToUBLInvoice
     private static function getLegalMonetaryTotal(BasicWLCrossIndustryInvoice $invoice): LegalMonetaryTotal
     {
         return (new LegalMonetaryTotal( // BG-22
-            lineExtensionAmount: new LineExtensionAmount($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getLineTotalAmount()->getValue()), // BT-106
-            taxExclusiveAmount: new TaxExclusiveAmount($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getTaxBasisTotalAmount()->getValue()), // BT-109
-            taxInclusiveAmount: new TaxInclusiveAmount($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getGrandTotalAmount()->getValue()), // BT-112
-            payableAmount: new PayableAmount($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getDuePayableAmount()->getValue()) // BT-115
+            lineExtensionAmount: new LineExtensionAmount(
+                value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getLineTotalAmount()->getValue(),
+                currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+            ), // BT-106
+            taxExclusiveAmount: new TaxExclusiveAmount(
+                value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getTaxBasisTotalAmount()->getValue(),
+                currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+            ), // BT-109
+            taxInclusiveAmount: new TaxInclusiveAmount(
+                value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getGrandTotalAmount()->getValue(),
+                currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+            ), // BT-112
+            payableAmount: new PayableAmount(
+                value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getDuePayableAmount()->getValue(),
+                currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+            ) // BT-115
         ))
             ->setPayableRoundingAmount( // BT-114 (EN)
                 $invoice instanceof EN16931CrossIndustryInvoice ?
-                    $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getRoundingAmount()?->getValue() : null
+                    new PayableRoundingAmount(
+                        value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getRoundingAmount()?->getValue(),
+                        currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                    ) : null
             )
             ->setAllowanceTotalAmount( // BT-107
                 $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getAllowanceTotalAmount() !== null ?
-                    new AllowanceTotalAmount($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getAllowanceTotalAmount()->getValue()) : null
+                    new AllowanceTotalAmount(
+                        value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getAllowanceTotalAmount()->getValue(),
+                        currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                    ) : null
             )
             ->setChargeTotalAmount( // BT-108
                 $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getChargeTotalAmount() !== null ?
-                    new ChargeTotalAmount($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getChargeTotalAmount()->getValue()) : null
+                    new ChargeTotalAmount(
+                        value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getChargeTotalAmount()->getValue(),
+                        currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                    ) : null
             )
             ->setPrepaidAmount( // BT-113
                 $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getTotalPrepaidAmount() !== null ?
-                    new PrepaidAmount($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getTotalPrepaidAmount()->getValue()) : null
+                    new PrepaidAmount(
+                        value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getTotalPrepaidAmount()->getValue(),
+                        currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                    ) : null
             )
         ;
     }
@@ -443,12 +496,18 @@ class CIIToUBLInvoice
             static fn (SpecifiedTradeAllowance $allowance) => (new Allowance(
                 amount: new AllowanceChargeAmount(
                     value: $allowance->getActualAmount()->getValue(), // BT-92
-                    currencyIdentifier: '' // existe pas ?
+                    currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
                 ),
                 taxCategory: (new TaxCategory($allowance->getAllowanceCategoryTradeTax()->getCategoryCode())) // BT-95
                 ->setPercent($allowance->getAllowanceCategoryTradeTax()->getRateApplicablePercent()?->getValue()) // BT-96
             ))
-                ->setBaseAmount($allowance->getBasisAmount() !== null ? new BaseAmount($allowance->getBasisAmount()->getValue()) : null) // BT-93
+                ->setBaseAmount(
+                    $allowance->getBasisAmount() !== null ?
+                        new BaseAmount(
+                            value: $allowance->getBasisAmount()->getValue(),
+                            currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                        ) : null
+                ) // BT-93
                 ->setMultiplierFactorNumeric($allowance->getCalculationPercent()?->getValue()) // BT-94
                 ->setAllowanceReason($allowance->getReason()) // BT-97
                 ->setAllowanceReasonCode($allowance->getReasonCode()) // BT-98
@@ -463,12 +522,18 @@ class CIIToUBLInvoice
             static fn (SpecifiedTradeCharge $charge) => (new Charge(
                 amount: new AllowanceChargeAmount(
                     value: $charge->getActualAmount()->getValue(), // BT-99
-                    currencyIdentifier: '', // existe pas ?
+                    currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
                 ),
-                taxCategory: (new TaxCategory($charge->getAllowanceCategoryTradeTax()->getCategoryCode())) // BT-102
-                ->setPercent($charge->getCategoryTradeTax()->getRateApplicablePercent()?->getValue()) // BT-103
+                taxCategory: (new TaxCategory($charge->getCategoryTradeTax()->getCategoryCode())) // BT-102
+                    ->setPercent($charge->getCategoryTradeTax()->getRateApplicablePercent()?->getValue()) // BT-103
             ))
-                ->setBaseAmount($charge->getBasisAmount() !== null ? new BaseAmount($charge->getBasisAmount()->getValue()) : null) // BT-100
+                ->setBaseAmount(
+                    $charge->getBasisAmount() !== null ?
+                        new BaseAmount(
+                            value: $charge->getBasisAmount()->getValue(),
+                            currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                        ) : null
+                ) // BT-100
                 ->setMultiplierFactorNumeric($charge->getCalculationPercent()?->getValue()) // BT-101
                 ->setChargeReason($charge->getReason()) // BT-104
                 ->setChargeReasonCode($charge->getReasonCode()) // BT-105)
@@ -531,7 +596,6 @@ class CIIToUBLInvoice
                             )
                             ->setEmbeddedDocumentBinaryObject($document->getAttachmentBinaryObject()) // BT-125
                     )
-                    ->setDocumentTypeCode() // todo existe pas ? /!\
                 ,
                 $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocuments()
             ),
@@ -550,7 +614,6 @@ class CIIToUBLInvoice
                                 )
                                 ->setEmbeddedDocumentBinaryObject($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentTenderOrLotReference()->getAttachmentBinaryObject())
                         )
-                        ->setDocumentTypeCode() // todo existe pas ? /!\
                 ] : [],
             $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentInvoicedObjectIdentifier() !== null ?
                 [
@@ -567,7 +630,8 @@ class CIIToUBLInvoice
                                 )
                                 ->setEmbeddedDocumentBinaryObject($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentInvoicedObjectIdentifier()->getAttachmentBinaryObject())
                         )
-                        ->setDocumentTypeCode() // todo existe pas ? /!\
+                        ->setDocumentTypeCode($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentInvoicedObjectIdentifier()->getReferenceTypeCode()) // BT-18-1
+                        // Only specified for this one because only present for this type of document
                 ] : [],
         );
     }
@@ -662,38 +726,54 @@ class CIIToUBLInvoice
         // BT-21 : 0..1
         // BT-22 : 1..1
 
+
+
         return (new UniversalBusinessLanguage(
             identifier: $invoice->getExchangedDocument()->getIdentifier(), // BT-1
             issueDate: new IssueDate($invoice->getExchangedDocument()->getIssueDateTime()->getDateTimeString()), // BT-2-00
             invoiceTypeCode: InvoiceTypeCode::from($invoice->getExchangedDocument()->getTypeCode()->value), // BT-3
             documentCurrencyCode: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode(), // BT-5
             customizationIdentifier: $invoice->getExchangedDocumentContext()->getGuidelineSpecifiedDocumentContextParameter()->getIdentifier(), // BT-24
-            profileIdentifier: $invoice->getExchangedDocumentContext()->getBusinessProcessSpecifiedDocumentContextParameter()->getIdentifier(), // BT-23 - todo doit passer 1..1 en 0..1
             accountingSupplierParty: self::getAccountingSupplierParty($invoice),
             accountingCustomerParty: self::getAccountingCustomerParty($invoice),
-            taxTotals: [ // BT-110 - BT-111 ???? todo
-                (new TaxTotal( // BT-110 => 1..1 > 0..1
-                    new TaxAmount( // todo BT-110 / BT-111 same from France spec ??????
-                        value: '', // BT-110
-                        currencyIdentifier: '', // BT-110-1
-                    )
-                ))
-                    ->setTaxSubtotals( // BG-23
-                        array_map(
-                            static fn (HeaderApplicableTradeTax $tax) => new TaxSubtotal(
-                                taxableAmount: new TaxableAmount($tax->getBasisAmount()->getValue()), // BT-116
-                                taxAmount: new TaxAmount($tax->getCalculatedAmount()->getValue()), // BT-117
-                                taxCategory: (new SubtotalTaxCategory(
-                                    identifier: $tax->getCategoryCode()  // BT-118,
-                                ))
-                                    ->setPercent($tax->getRateApplicablePercent()?->getValue()) // BT-119
-                                    ->setTaxExemptionReason($tax->getExemptionReason()) // BT-120
-                                    ->setTaxExemptionReasonCode($tax->getExemptionReasonCode()) // BT-121
-                            ),
-                            $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()
+            taxTotals: array_merge(
+                $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getTaxTotalAmount() instanceof TaxTotalAmount ?
+                    [(new TaxTotal(
+                        new TaxAmount(
+                            value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getTaxTotalAmount()->getValue()->getValue(),
+                            currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getTaxTotalAmount()->getCurrencyIdentifier()
                         )
-                    )
-            ],
+                    ))
+                        ->setTaxSubtotals( // BG-23
+                            array_map(
+                                static fn (HeaderApplicableTradeTax $tax) => new TaxSubtotal(
+                                    taxableAmount: new TaxableAmount(
+                                        value: $tax->getBasisAmount()->getValue(),
+                                        currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                                    ), // BT-116
+                                    taxAmount: new TaxAmount(
+                                        value: $tax->getCalculatedAmount()->getValue(),
+                                        currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
+                                    ), // BT-117
+                                    taxCategory: (new SubtotalTaxCategory(
+                                        identifier: $tax->getCategoryCode()  // BT-118,
+                                    ))
+                                        ->setPercent($tax->getRateApplicablePercent()?->getValue()) // BT-119
+                                        ->setTaxExemptionReason($tax->getExemptionReason()) // BT-120
+                                        ->setTaxExemptionReasonCode($tax->getExemptionReasonCode()) // BT-121
+                                ),
+                                $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()
+                            )
+                        )
+                    ]: [],
+                $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getTaxTotalAmountCurrency() instanceof TaxTotalAmount ?
+                    [new TaxTotal(
+                        new TaxAmount(
+                            value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getTaxTotalAmountCurrency()->getValue()->getValue(),
+                            currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradeSettlementHeaderMonetarySummation()->getTaxTotalAmountCurrency()->getCurrencyIdentifier()
+                        )
+                    )] : []
+            ),
             legalMonetaryTotal: self::getLegalMonetaryTotal($invoice),
             invoiceLines: $invoice instanceof BasicCrossIndustryInvoice ? self::getLines($invoice) : [] // todo 1..n but what happen when BasicWL ?
         ))
@@ -752,8 +832,15 @@ class CIIToUBLInvoice
                 $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms() !== null ?
                     new PaymentTerms($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms()->getDescription()) : null
             )
-            ->setNote() // doit passer 0..1 en 0..n // BG-1-00
-            //->setProfileIdentifier($profileId) // BT-23
+            ->setNotes( // BG-1-00
+                array_map(
+                    static fn(DocumentIncludedNote $note) => new Note(
+                        subjectCode: $note->getSubjectCode(), content: $note->getContent(),
+                    ),
+                    $invoice->getExchangedDocument()->getIncludedNotes()
+                )
+            )
+            ->setProfileIdentifier($invoice->getExchangedDocumentContext()->getBusinessProcessSpecifiedDocumentContextParameter()->getIdentifier()) // BT-23
             ->setBillingReferences(self::getBillingReferences($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceReferencedDocuments())) // BG-3
             ->setTaxRepresentativeParty( // BG-11
                 $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTaxRepresentativeTradeParty() !== null ?
@@ -772,7 +859,8 @@ class CIIToUBLInvoice
                                 new PayeePartyIdentification(new PayeeIdentifier( // todo BT-60 CII scheme does not exist but 1..1 in UBL
                                     value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPayeeTradeParty()->getIdentifier()->value,
                                 )) : null),
-                        partyBACIdentification: null // todo doesn't exist ?
+                        partyBACIdentification: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getCreditorReferenceIdentifier() !== null ? // BT-90
+                            new PayeePartyBACIdentification($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getCreditorReferenceIdentifier()->value) : null
                     ))
                         ->setPartyLegalEntity( // BT-61
                             $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPayeeTradeParty()->getSpecifiedLegalOrganization()?->getIdentifier() !== null ?
