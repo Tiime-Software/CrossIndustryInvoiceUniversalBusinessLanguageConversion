@@ -133,6 +133,8 @@ class CIIToUBLInvoice
 {
     /**
      * BG-25.
+     *
+     * @return InvoiceLine[]
      */
     private static function getLines(BasicCrossIndustryInvoice $invoice): array
     {
@@ -159,7 +161,7 @@ class CIIToUBLInvoice
                             new SellersItemIdentification($invoiceLine->getSpecifiedTradeProduct()->getSellerAssignedIdentifier()->value) : null
                     )
                     ->setBuyersItemIdentification( // BT-156
-                        $invoiceLine instanceof EN16931IncludedSupplyChainTradeLineItem && null !== $invoiceLine->getSpecifiedTradeProduct()->getSellerAssignedIdentifier() ?
+                        $invoiceLine instanceof EN16931IncludedSupplyChainTradeLineItem && null !== $invoiceLine->getSpecifiedTradeProduct()->getBuyerAssignedIdentifier() ?
                             new BuyersItemIdentification($invoiceLine->getSpecifiedTradeProduct()->getBuyerAssignedIdentifier()->value) : null
                     )
                     ->setStandardItemIdentification( // BT-157
@@ -167,15 +169,21 @@ class CIIToUBLInvoice
                             new StandardItemIdentification($invoiceLine->getSpecifiedTradeProduct()->getGlobalIdentifier()) : null
                     )
                     ->setCommodityClassifications(
+                        // Add new values in the array if classCode is null (meaning that's an empty object), null values are removed at the end of the iterator
                         $invoiceLine instanceof EN16931IncludedSupplyChainTradeLineItem ?
-                        array_map(
-                            static fn (DesignatedProductClassification $classification) => (new CommodityClassification(
-                                itemClassificationCode: $classification->getClassCode()->getValue(), // BT-158
-                                listIdentifier: $classification->getClassCode()->getListIdentifier() // BT-158-1
-                            ))
-                                ->setListVersionIdentifier($classification->getClassCode()->getListVersionIdentifier()),
-                            $invoiceLine->getSpecifiedTradeProduct()->getDesignatedProductClassifications()
-                        ) : []
+                            array_filter(
+                                array_map(
+                                    static fn (DesignatedProductClassification $classification) => null !== $classification->getClassCode() ?
+                                        (new CommodityClassification(
+                                            itemClassificationCode: $classification->getClassCode()->getValue(), // BT-158
+                                            listIdentifier: $classification->getClassCode()->getListIdentifier() // BT-158-1
+                                        ))
+                                            ->setListVersionIdentifier($classification->getClassCode()->getListVersionIdentifier())
+                                        : null,
+                                    $invoiceLine->getSpecifiedTradeProduct()->getDesignatedProductClassifications(),
+                                ),
+                                fn ($item) => null !== $item
+                            ) : []
                     )
                     ->setOriginCountry( // BT-159
                         $invoiceLine instanceof EN16931IncludedSupplyChainTradeLineItem && null !== $invoiceLine->getSpecifiedTradeProduct()->getOriginTradeCountry() ?
