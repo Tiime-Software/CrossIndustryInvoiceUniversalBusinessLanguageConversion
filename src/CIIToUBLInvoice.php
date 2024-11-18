@@ -276,7 +276,7 @@ class CIIToUBLInvoice
                             )
                             ->setMultiplierFactorNumeric( // BT-138
                                 $allowance instanceof EN16931LineSpecifiedTradeAllowance && null !== $allowance->getCalculationPercent() ?
-                                    $allowance->getCalculationPercent()?->getValue() : null
+                                    $allowance->getCalculationPercent()->getValue() : null
                             )
                             ->setAllowanceReason($allowance->getReason()) // BT-139
                             ->setAllowanceReasonCode($allowance->getReasonCode()) // BT-140
@@ -496,6 +496,8 @@ class CIIToUBLInvoice
 
     /**
      * BG-20.
+     *
+     * @return Allowance[]
      */
     private static function getInvoiceAllowances(BasicWLCrossIndustryInvoice $invoice): array
     {
@@ -525,6 +527,8 @@ class CIIToUBLInvoice
 
     /**
      * BG-21.
+     *
+     * @return Charge[]
      */
     private static function getInvoiceCharges(BasicWLCrossIndustryInvoice $invoice): array
     {
@@ -576,7 +580,7 @@ class CIIToUBLInvoice
     /**
      * @param array<int, InvoiceReferencedDocument> $invoiceReferencedDocuments
      *
-     * @return array<int, BillingReference>
+     * @return BillingReference[]
      */
     private static function getBillingReferences(array $invoiceReferencedDocuments): array
     {
@@ -592,6 +596,9 @@ class CIIToUBLInvoice
         );
     }
 
+    /**
+     * @return AdditionalDocumentReference[]
+     */
     private static function getAdditionalDocumentReferences(EN16931CrossIndustryInvoice $invoice): array
     {
         return array_merge(
