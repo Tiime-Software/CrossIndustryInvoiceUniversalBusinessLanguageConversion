@@ -8,12 +8,14 @@ use Tiime\CrossIndustryInvoice\DataType\AdditionalReferencedDocumentAdditionalSu
 use Tiime\CrossIndustryInvoice\DataType\ApplicableProductCharacteristic;
 use Tiime\CrossIndustryInvoice\DataType\Basic\IncludedSupplyChainTradeLineItem as BasicIncludedSupplyChainTradeLineItem;
 use Tiime\CrossIndustryInvoice\DataType\Basic\LineSpecifiedTradeAllowance as BasicLineSpecifiedTradeAllowance;
+use Tiime\CrossIndustryInvoice\DataType\Basic\LineSpecifiedTradeCharge as BasicLineSpecifiedTradeCharge;
 use Tiime\CrossIndustryInvoice\DataType\BasicWL\HeaderApplicableTradeTax;
 use Tiime\CrossIndustryInvoice\DataType\BasicWL\SpecifiedTradeSettlementPaymentMeans;
 use Tiime\CrossIndustryInvoice\DataType\DesignatedProductClassification;
 use Tiime\CrossIndustryInvoice\DataType\DocumentIncludedNote;
 use Tiime\CrossIndustryInvoice\DataType\EN16931\IncludedSupplyChainTradeLineItem as EN16931IncludedSupplyChainTradeLineItem;
 use Tiime\CrossIndustryInvoice\DataType\EN16931\LineSpecifiedTradeAllowance as EN16931LineSpecifiedTradeAllowance;
+use Tiime\CrossIndustryInvoice\DataType\EN16931\LineSpecifiedTradeCharge as EN16931LineSpecifiedTradeCharge;
 use Tiime\CrossIndustryInvoice\DataType\EN16931\SpecifiedTradeSettlementPaymentMeans as EN16931SpecifiedTradeSettlementPaymentMeans;
 use Tiime\CrossIndustryInvoice\DataType\InvoiceReferencedDocument;
 use Tiime\CrossIndustryInvoice\DataType\SellerGlobalIdentifier;
@@ -286,21 +288,21 @@ class CIIToUBLInvoice
                 )
                 ->setCharges( // BG-28
                     array_map(
-                        static fn (BasicLineSpecifiedTradeAllowance $charge) => (new InvoiceLineCharge(
+                        static fn (BasicLineSpecifiedTradeCharge $charge) => (new InvoiceLineCharge(
                             amount: new AllowanceChargeAmount(
                                 value: $charge->getActualAmount()->getValue(),
                                 currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
                             ) // BT-141
                         ))
                             ->setBaseAmount( // BT-142
-                                $charge instanceof EN16931LineSpecifiedTradeAllowance && null !== $charge->getBasisAmount() ?
+                                $charge instanceof EN16931LineSpecifiedTradeCharge && null !== $charge->getBasisAmount() ?
                                     new BaseAmount(
                                         value: $charge->getBasisAmount()->getValue(),
                                         currencyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode()
                                     ) : null
                             )
                             ->setMultiplierFactorNumeric( // BT-143
-                                $charge instanceof EN16931LineSpecifiedTradeAllowance && null !== $charge->getCalculationPercent() ?
+                                $charge instanceof EN16931LineSpecifiedTradeCharge && null !== $charge->getCalculationPercent() ?
                                     $charge->getCalculationPercent()->getValue() : null
                             )
                             ->setChargeReason($charge->getReason()) // BT-144
