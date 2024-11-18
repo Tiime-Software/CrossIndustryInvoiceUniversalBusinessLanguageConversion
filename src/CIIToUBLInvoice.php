@@ -701,6 +701,9 @@ class CIIToUBLInvoice
             : null;
     }
 
+    /**
+     * @return PaymentMeans[]
+     */
     private static function getPaymentMeans(BasicWLCrossIndustryInvoice $invoice): array
     {
         return array_map(
@@ -845,7 +848,7 @@ class CIIToUBLInvoice
                     $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getReceivableSpecifiedTradeAccountingAccount()->getIdentifier() : null
             )
             ->setPaymentTerms( // BT-20
-                null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms() ?
+                null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms()?->getDescription() ?
                     new PaymentTerms($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms()->getDescription()) : null
             )
             ->setNotes( // BG-1-00
