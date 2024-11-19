@@ -321,12 +321,6 @@ class CIIToUBLInvoice
     {
         return new AccountingSupplierParty( // BG-4
             party: (new SellerParty(
-                // endpointIdentifier - 1..1 dans la lib UBL - doit être changé en 0..1
-                endpointIdentifier: null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTradeParty()->getURIUniversalCommunication() ? // BT-34
-                    new EndpointIdentifier(
-                        value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTradeParty()->getURIUniversalCommunication()->getElectronicAddress()->value,
-                        scheme: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTradeParty()->getURIUniversalCommunication()->getElectronicAddress()->scheme
-                    ) : null,
                 postalAddress: (new PostalAddress(new Country($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTradeParty()->getPostalTradeAddress()->getCountryIdentifier()))) // BT-40
                     ->setStreetName($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTradeParty()->getPostalTradeAddress()->getLineOne()) // BT-35
                     ->setAdditionalStreetName($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTradeParty()->getPostalTradeAddress()->getLineTwo()) // BT-36
@@ -358,6 +352,13 @@ class CIIToUBLInvoice
                                 taxScheme: new TaxScheme('LOC')
                             )] : [], // BT-32
                     )
+                )
+                ->setEndpointIdentifier( // BT-34
+                    null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTradeParty()->getURIUniversalCommunication() ?
+                        new EndpointIdentifier(
+                            value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTradeParty()->getURIUniversalCommunication()->getElectronicAddress()->value,
+                            scheme: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTradeParty()->getURIUniversalCommunication()->getElectronicAddress()->scheme
+                        ) : null
                 )
                 ->setContact( // BG-6
                     $invoice instanceof EN16931CrossIndustryInvoice && null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTradeParty()->getDefinedTradeContact() ?
@@ -399,11 +400,6 @@ class CIIToUBLInvoice
     {
         return new AccountingCustomerParty( // BG-7
             party: (new BuyerParty(
-                endpointIdentifier: null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerTradeParty()->getURIUniversalCommunication() ?
-                    new EndpointIdentifier(
-                        value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerTradeParty()->getURIUniversalCommunication()->getElectronicAddress()->value,
-                        scheme: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerTradeParty()->getURIUniversalCommunication()->getElectronicAddress()->scheme
-                    ) : null, // BT-49
                 postalAddress: (new PostalAddress(country: new Country($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerTradeParty()->getPostalTradeAddress()->getCountryIdentifier()))) // BT-55
                     ->setStreetName($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerTradeParty()->getPostalTradeAddress()->getLineOne()) // BT-50
                     ->setAdditionalStreetName($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerTradeParty()->getPostalTradeAddress()->getLineTwo()) // BT-51
@@ -434,6 +430,13 @@ class CIIToUBLInvoice
                         new BuyerPartyTaxScheme(
                             companyIdentifier: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerTradeParty()->getSpecifiedTaxRegistrationVA()->getIdentifier(),
                             taxScheme: new TaxScheme($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerTradeParty()->getSpecifiedTaxRegistrationVA()->getSchemeIdentifier())
+                        ) : null
+                )
+                ->setEndpointIdentifier( // BT-49
+                    null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerTradeParty()->getURIUniversalCommunication() ?
+                        new EndpointIdentifier(
+                            value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerTradeParty()->getURIUniversalCommunication()->getElectronicAddress()->value,
+                            scheme: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerTradeParty()->getURIUniversalCommunication()->getElectronicAddress()->scheme
                         ) : null
                 )
                 ->setContact( // BG-9
