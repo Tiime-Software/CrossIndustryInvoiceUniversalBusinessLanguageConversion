@@ -3,8 +3,8 @@
     "type": "library",
     "require": {
         "php": ">=8.3",
-        "tiime/cross-industry-invoice": "dev-main",
-        "tiime/universal-business-language": "dev-master"
+        "tiime/cross-industry-invoice": "^0.3.1",
+        "tiime/universal-business-language": "^0.2.1"
     },
     "license": "MIT",
     "autoload": {
@@ -22,9 +22,9 @@
         "fix-cs": "vendor/bin/php-cs-fixer fix",
         "phpstan": "vendor/bin/phpstan analyse -l 9 src tests"
     },
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "dev-master",
-        "phpstan/phpstan": "2.0.x-dev"
+        "friendsofphp/php-cs-fixer": "^3.64",
+        "phpstan/phpstan": "^2.0"
     }
 }
