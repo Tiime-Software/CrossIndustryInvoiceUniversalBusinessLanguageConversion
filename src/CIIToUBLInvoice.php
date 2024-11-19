@@ -129,6 +129,7 @@ use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\TaxInclusiveAmo
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Basic\TaxPointDate;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\InvoiceTypeCode;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\UniversalBusinessLanguage;
+use Tiime\UniversalBusinessLanguage\UniversalBusinessLanguageInterface;
 
 /**
  * @internal
@@ -784,7 +785,7 @@ class CIIToUBLInvoice
         );
     }
 
-    public static function convert(BasicWLCrossIndustryInvoice $invoice) // : UniversalBusinessLanguageInterface @todo when one interface
+    public static function convert(BasicWLCrossIndustryInvoice $invoice): UniversalBusinessLanguageInterface
     {
         return (new UniversalBusinessLanguage(
             identifier: $invoice->getExchangedDocument()->getIdentifier(), // BT-1

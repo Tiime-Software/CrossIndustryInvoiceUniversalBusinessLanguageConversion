@@ -128,6 +128,7 @@ use Tiime\UniversalBusinessLanguage\Ubl21\CreditNote\DataType\Basic\TaxInclusive
 use Tiime\UniversalBusinessLanguage\Ubl21\CreditNote\DataType\Basic\TaxPointDate;
 use Tiime\UniversalBusinessLanguage\Ubl21\CreditNote\DataType\CreditNoteTypeCode;
 use Tiime\UniversalBusinessLanguage\Ubl21\CreditNote\UniversalBusinessLanguage;
+use Tiime\UniversalBusinessLanguage\UniversalBusinessLanguageInterface;
 
 /**
  * @internal
@@ -783,7 +784,7 @@ class CIIToUBLCreditNote
         );
     }
 
-    public static function convert(BasicWLCrossIndustryInvoice $invoice) // : UniversalBusinessLanguageInterface @todo when one interface
+    public static function convert(BasicWLCrossIndustryInvoice $invoice): UniversalBusinessLanguageInterface
     {
         return (new UniversalBusinessLanguage(
             identifier: $invoice->getExchangedDocument()->getIdentifier(), // BT-1
