@@ -841,7 +841,7 @@ class CIIToUBLCreditNote
                     new TaxPointDate($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getTaxPointDate()->getDateString()) : null
             )
             ->setInvoicePeriod( // BT-8-00
-                null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getDueDateTypeCode() ?
+                \count($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()) > 0 && null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getDueDateTypeCode() ?
                     (new InvoicePeriod())
                         ->setDescriptionCode(
                             TimeReferencingCodeUNTDID2005ToTimeReferencingCodeUNTDID2475::convertToUNTDID2005($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getDueDateTypeCode())
