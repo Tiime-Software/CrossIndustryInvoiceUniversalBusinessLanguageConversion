@@ -12,6 +12,11 @@
             "Tiime\\CrossIndustryInvoiceUniversalBusinessLanguageConversion\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Tiime\\CrossIndustryInvoiceUniversalBusinessLanguageConversion\\Tests\\": "tests/"
+        }
+    },
     "authors": [
         {
             "name": "Aurélien Pillevesse",
@@ -20,11 +25,14 @@
     ],
     "scripts": {
         "fix-cs": "vendor/bin/php-cs-fixer fix",
-        "phpstan": "vendor/bin/phpstan analyse -l 9 src tests"
+        "phpstan": "vendor/bin/phpstan analyse -l 9 src tests",
+        "test": "vendor/bin/phpunit tests --display-warnings"
     },
     "minimum-stability": "stable",
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.64",
-        "phpstan/phpstan": "^2.0"
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^11.4",
+        "ext-dom": "*"
     }
 }
