@@ -639,8 +639,15 @@ class CIIToUBLCreditNote
                                 ->setEmbeddedDocumentBinaryObject($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentInvoicedObjectIdentifier()->getAttachmentBinaryObject())
                         )
                         ->setDocumentTypeCode($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentInvoicedObjectIdentifier()->getReferenceTypeCode()), // BT-18-1
-                    // Only specified for this one because only present for this type of document
+                    // "setDocumentTypeCode" only specified for this one because only present for this type of document
                 ] : [],
+            null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSpecifiedProcuringProject() ?
+                [
+                    (new AdditionalDocumentReference( // BT-11
+                        identifier: new ObjectIdentifier($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSpecifiedProcuringProject()->getIdentifier()->value)
+                    ))
+                        ->setDocumentTypeCode('50'),
+                ] : []
         );
     }
 
