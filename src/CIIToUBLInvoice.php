@@ -624,22 +624,6 @@ class CIIToUBLInvoice
                     ),
                 $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocuments()
             ),
-            null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentTenderOrLotReference() ?
-                [
-                    (new AdditionalDocumentReference(
-                        identifier: new ObjectIdentifier($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentTenderOrLotReference()->getIssuerAssignedIdentifier()->value) // BT-122
-                    ))
-                        ->setDocumentDescription($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentTenderOrLotReference()->getName()) // BT-123
-                        ->setAttachment(
-                            (new Attachment())
-                                ->setExternalReference( // BT-124
-                                    null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentTenderOrLotReference()->getUriIdentifier() ?
-                                        new ExternalReference($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentTenderOrLotReference()->getUriIdentifier())
-                                        : null
-                                )
-                                ->setEmbeddedDocumentBinaryObject($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentTenderOrLotReference()->getAttachmentBinaryObject())
-                        ),
-                ] : [],
             null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentInvoicedObjectIdentifier() ?
                 [
                     (new AdditionalDocumentReference(
