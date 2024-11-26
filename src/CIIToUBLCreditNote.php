@@ -31,6 +31,7 @@ use Tiime\EN16931\DataType\Identifier\LocationIdentifier;
 use Tiime\EN16931\DataType\Identifier\ObjectIdentifier;
 use Tiime\EN16931\DataType\Identifier\PayeeIdentifier;
 use Tiime\EN16931\DataType\Identifier\SellerIdentifier;
+use Tiime\EN16931\DataType\Identifier\SpecificationIdentifier;
 use Tiime\UniversalBusinessLanguage\Ubl21\CreditNote\DataType\Aggregate\AccountingCustomerParty;
 use Tiime\UniversalBusinessLanguage\Ubl21\CreditNote\DataType\Aggregate\AccountingSupplierParty;
 use Tiime\UniversalBusinessLanguage\Ubl21\CreditNote\DataType\Aggregate\AdditionalDocumentReference;
@@ -774,7 +775,7 @@ class CIIToUBLCreditNote
             issueDate: new IssueDate($invoice->getExchangedDocument()->getIssueDateTime()->getDateTimeString()), // BT-2-00
             creditNoteTypeCode: CreditNoteTypeCode::from($invoice->getExchangedDocument()->getTypeCode()->value), // BT-3
             documentCurrencyCode: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getInvoiceCurrencyCode(), // BT-5
-            customizationIdentifier: $invoice->getExchangedDocumentContext()->getGuidelineSpecifiedDocumentContextParameter()->getIdentifier(), // BT-24
+            customizationIdentifier: new SpecificationIdentifier('urn:cen.eu:en16931:2017'), // BT-24
             accountingSupplierParty: self::getAccountingSupplierParty($invoice),
             accountingCustomerParty: self::getAccountingCustomerParty($invoice),
             taxTotals: array_merge(
