@@ -632,7 +632,7 @@ class CIIToUBLInvoice
                             scheme: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentInvoicedObjectIdentifier()->getReferenceTypeCode() // BT-18-1
                         )
                     ))
-                        ->setDocumentTypeCode($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentInvoicedObjectIdentifier()->getReferenceTypeCode()), // BT-18-0
+                        ->setDocumentTypeCode($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getAdditionalReferencedDocumentInvoicedObjectIdentifier()->getTypeCode()), // BT-18-0
                 ] : [],
         );
     }
