@@ -32,6 +32,7 @@ use Tiime\EN16931\DataType\Identifier\ObjectIdentifier;
 use Tiime\EN16931\DataType\Identifier\PayeeIdentifier;
 use Tiime\EN16931\DataType\Identifier\SellerIdentifier;
 use Tiime\EN16931\DataType\Identifier\SpecificationIdentifier;
+use Tiime\UniversalBusinessLanguage\Ubl21\CreditNote\DataType\Aggregate\SellerPartyBankAssignedCreditorIdentification;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\AccountingCustomerParty;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\AccountingSupplierParty;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\AdditionalDocumentReference;
@@ -76,7 +77,7 @@ use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\OriginCount
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PartyName;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeeFinancialAccount;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeeParty;
-use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeePartyBACIdentification;
+use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeePartyBankAssignedCreditorIdentification;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeePartyIdentification;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeePartyLegalEntity;
 use Tiime\UniversalBusinessLanguage\Ubl21\Invoice\DataType\Aggregate\PayeePartyName;
@@ -370,15 +371,8 @@ class CIIToUBLInvoice
                             ->setElectronicMail($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTradeParty()->getDefinedTradeContact()->getEmailURIUniversalCommunication()?->getUriIdentifier()) // BT-43
                         : null
                 )
-                ->setPartyIdentifications( // BT-90 + BT-29
+                ->setPartyIdentifications( // BT-29
                     array_merge(
-                        null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getCreditorReferenceIdentifier() ?
-                            [
-                                new SellerPartyIdentification(new SellerIdentifier(
-                                    value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getCreditorReferenceIdentifier()->value
-                                    // scheme: '' : no scheme needed here but for others yes ?
-                                )),
-                            ] : [],
                         array_map(
                             static fn (SellerIdentifier $identifier) => new SellerPartyIdentification(new SellerIdentifier(
                                 value: $identifier->value,
@@ -394,6 +388,12 @@ class CIIToUBLInvoice
                             $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getSellerTradeParty()->getGlobalIdentifiers()
                         ),
                     )
+                )
+                ->setPartyBankAssignedCreditorIdentifications( // BT-90
+                    null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getCreditorReferenceIdentifier() ?
+                        [
+                            new SellerPartyBankAssignedCreditorIdentification($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getCreditorReferenceIdentifier()->value),
+                        ] : [],
                 )
         );
     }
@@ -888,16 +888,16 @@ class CIIToUBLInvoice
                 null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPayeeTradeParty() ?
                     (new PayeeParty(
                         partyName: new PayeePartyName($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPayeeTradeParty()->getName()), // BT-59
-                        partyIdentification: null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPayeeTradeParty()->getGlobalIdentifier() ?
+                        partyIdentification: null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPayeeTradeParty()->getGlobalIdentifier() ? // BT-60
                             new PayeePartyIdentification(new PayeeIdentifier(
                                 value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPayeeTradeParty()->getGlobalIdentifier()->value,
                                 scheme: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPayeeTradeParty()->getGlobalIdentifier()->scheme,
                             )) : (null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPayeeTradeParty()->getIdentifier() ?
-                                new PayeePartyIdentification(new PayeeIdentifier( // todo BT-60 CII scheme does not exist but 1..1 in UBL
+                                new PayeePartyIdentification(new PayeeIdentifier(
                                     value: $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPayeeTradeParty()->getIdentifier()->value,
                                 )) : null),
-                        partyBACIdentification: null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getCreditorReferenceIdentifier() ? // BT-90
-                            new PayeePartyBACIdentification($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getCreditorReferenceIdentifier()->value) : null
+                        partyBankAssignedCreditorIdentification: null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getCreditorReferenceIdentifier() ? // BT-90
+                            new PayeePartyBankAssignedCreditorIdentification($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getCreditorReferenceIdentifier()->value) : null
                     ))
                         ->setPartyLegalEntity( // BT-61
                             null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPayeeTradeParty()->getSpecifiedLegalOrganization()?->getIdentifier() ?
