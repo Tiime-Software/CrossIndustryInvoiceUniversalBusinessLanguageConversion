@@ -770,6 +770,42 @@ class CIIToUBLCreditNote
         );
     }
 
+    /**
+     * BT-8-00 + BT-73 + BT-74.
+     */
+    private static function getInvoicePeriod(BasicWLCrossIndustryInvoice $invoice): ?InvoicePeriod
+    {
+        $bt8Condition = \count($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()) > 0 && null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getDueDateTypeCode();
+
+        $bt73Condition = null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getBillingSpecifiedPeriod()?->getStartDateTime();
+        $bt74Condition = null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getBillingSpecifiedPeriod()?->getEndDateTime();
+
+        if (!$bt8Condition && !$bt73Condition && !$bt74Condition) {
+            return null;
+        }
+
+        $invoicePeriod = new InvoicePeriod();
+
+        // BT-8-00
+        if ($bt8Condition) {
+            $invoicePeriod->setDescriptionCode(
+                TimeReferencingCodeUNTDID2005ToTimeReferencingCodeUNTDID2475::convertToUNTDID2005($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getDueDateTypeCode())
+            );
+        }
+
+        // BT-73
+        if ($bt73Condition) {
+            $invoicePeriod->setStartDate(new StartDate($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getBillingSpecifiedPeriod()->getStartDateTime()->getDateTimeString()));
+        }
+
+        // BT-74
+        if ($bt74Condition) {
+            $invoicePeriod->setEndDate(new EndDate($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getBillingSpecifiedPeriod()->getEndDateTime()->getDateTimeString()));
+        }
+
+        return $invoicePeriod;
+    }
+
     public static function convert(BasicWLCrossIndustryInvoice $invoice): UniversalBusinessLanguageInterface
     {
         return (new UniversalBusinessLanguage(
@@ -826,14 +862,7 @@ class CIIToUBLCreditNote
                 $invoice instanceof EN16931CrossIndustryInvoice && \count($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()) > 0 && null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getTaxPointDate() ?
                     new TaxPointDate($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getTaxPointDate()->getDateString()) : null
             )
-            ->setInvoicePeriod( // BT-8-00
-                \count($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()) > 0 && null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getDueDateTypeCode() ?
-                    (new InvoicePeriod())
-                        ->setDescriptionCode(
-                            TimeReferencingCodeUNTDID2005ToTimeReferencingCodeUNTDID2475::convertToUNTDID2005($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getDueDateTypeCode())
-                        )
-                    : null
-            )
+            ->setInvoicePeriod(self::getInvoicePeriod($invoice)) // BT-8-00 + BT-73 + BT-74
             ->setDueDate(
                 null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms()?->getDueDateDateTime() ?
                     new PaymentDueDate($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms()->getDueDateDateTime()->getDateTimeString()) : null
