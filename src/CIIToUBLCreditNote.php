@@ -745,6 +745,10 @@ class CIIToUBLCreditNote
                 (new PaymentMeansNamedCode($payment->getTypeCode())) // BT-81
                     ->setName($payment instanceof EN16931SpecifiedTradeSettlementPaymentMeans ? $payment->getInformation() : null) // BT-82
             ))
+                ->setPaymentDueDate( // BT-9
+                    null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms()?->getDueDateDateTime() ?
+                        new PaymentDueDate($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms()->getDueDateDateTime()->getDateTimeString()) : null
+                )
                 ->setPaymentIdentifier($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getPaymentReference()) // BT-83
                 ->setPayeeFinancialAccount(self::getFinancialAccount($payment)) // BG-17
                 ->setCardAccount( // BG-18
@@ -863,10 +867,6 @@ class CIIToUBLCreditNote
                     new TaxPointDate($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getApplicableTradeTaxes()[0]->getTaxPointDate()->getDateString()) : null
             )
             ->setInvoicePeriod(self::getInvoicePeriod($invoice)) // BT-8-00 + BT-73 + BT-74
-            ->setDueDate(
-                null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms()?->getDueDateDateTime() ?
-                    new PaymentDueDate($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeSettlement()->getSpecifiedTradePaymentTerms()->getDueDateDateTime()->getDateTimeString()) : null
-            ) // BT-9-00
             ->setBuyerReference($invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getBuyerReference()) // BT-10
             ->setContractDocumentReference( // BT-12-00
                 null !== $invoice->getSupplyChainTradeTransaction()->getApplicableHeaderTradeAgreement()->getContractReferencedDocument() ?
